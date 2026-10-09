@@ -78,7 +78,7 @@ function renderOrders() {
     return `<div class="order ${o.status}">
       <div class="top"><span>${esc(o.name)} · ch. ${esc(o.room)}</span><span>${eur(o.totalCents)}</span></div>
       <div class="stock">${date} · ${o.payment === "wero" ? "Wero" : "Espèces"}</div>
-      <ul>${o.items.map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join("")}</ul>
+      <ul>${o.items.map(i => `<li>${i.qty} ×${esc(i.name)}</li>`).join("")}</ul>
       <div class="chips"><span class="tag">${esc(o.status)}</span><span class="tag ${o.paid ? "ok" : ""}">${o.paid ? "payée" : "non payée"}</span></div>
       <div class="chips">
         ${o.status === "nouvelle" ? btn("valider", "Valider") : ""}
@@ -94,13 +94,15 @@ $("#orders").addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const o = orders.find(x => x.id === b.dataset.id), act = b.dataset.act, ref = doc(db, "orders", o.id);
   try {
-    if (act === "valider" || (act === "annuler" && o.status === "validée")) {
-      const batch = writeBatch(db), sign = act === "valider" ? -1 : 1;
-      o.items.forEach(i => batch.update(doc(db, "products", i.id), { stock: increment(sign * i.qty) }));
-      batch.update(ref, { status: act === "valider" ? "validée" : "annulée" });
+    if (act === "valider") {
+      await updateDoc(ref, { status: "validée" });
+    } else if (act === "annuler") {
+      const batch = writeBatch(db);
+      // On recrédite le stock des produits puisque la commande est annulée
+      o.items.forEach(i => batch.update(doc(db, "products", i.id), { stock: increment(i.qty) }));
+      batch.update(ref, { status: "annulée" });
       await batch.commit();
-    } else if (act === "annuler") await updateDoc(ref, { status: "annulée" });
-    else if (act === "livrer") await updateDoc(ref, { status: "livrée" });
+    } else if (act === "livrer") await updateDoc(ref, { status: "livrée" });
     else if (act === "payer") await updateDoc(ref, { paid: !o.paid });
     else if (act === "suppr" && confirm("Supprimer cette commande ?")) await deleteDoc(ref);
   } catch (err) { alert("Action impossible : " + err.message); }
@@ -128,7 +130,7 @@ $("#products").addEventListener("click", async e => {
 $("#add").onsubmit = async e => {
   e.preventDefault();
   try {
-    await addDoc(collection(db, "products"), { emoji: $("#ae").value.trim() || "🥤", name: $("#an").value.trim(), priceCents: Math.round($("#ap").value * 100), stock: parseInt($("#as").value, 10) || 0 });
+    await addDoc(collection(db, "products"), { emoji: $("#ae").value.trim() \vert{}\vert{} "🥤", name: $("#an").value.trim(), priceCents: Math.round($("#ap").value * 100), stock: parseInt($("#as").value, 10) || 0 });
     e.target.reset();
   } catch (err) { alert("Ajout impossible : " + err.message); }
 };

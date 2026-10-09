@@ -32,7 +32,7 @@
 
 <script type="module">
 import { db, SHOP, esc, eur } from "./config.js";
-import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { collection, onSnapshot, serverTimestamp, query, orderBy, doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
 let products = [], cart = {};
@@ -93,14 +93,24 @@ $("#form").onsubmit = async e => {
   const name = f.get("name").trim(), room = f.get("room").trim(), payment = f.get("payment");
   $("#send").disabled = true;
   try {
-    await addDoc(collection(db, "orders"), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, createdAt: serverTimestamp() });
+    await runTransaction(db, async tx => {
+      const refs = items.map(i => doc(db, "products", i.id));
+      const snaps = await Promise.all(refs.map(r => tx.get(r)));
+      snaps.forEach((s, k) => {
+        if (!s.exists() || s.data().stock < items[k].qty) throw new Error("STOCK:" + items[k].name);
+      });
+      snaps.forEach((s, k) => tx.update(refs[k], { stock: s.data().stock - items[k].qty }));
+      tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, createdAt: serverTimestamp() });
+    });
     try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
     cart = {}; render();
     $("#form").hidden = true; $("#done").hidden = false;
     $("#done").innerHTML = `<h2 style="margin-top:0">Commande envoyée ✅</h2><p>Total à payer : <strong>${eur(total)}</strong></p><p>${payment === "wero" ? "Paie en Wero : " + esc(SHOP.wero) : "Prépare ton paiement en espèces, de préférence l'appoint."}</p><p>Tu seras livré dans ta chambre (${esc(room)}).</p><button class="btn" id="ok">Fermer</button>`;
     $("#ok").onclick = () => $("#dlg").close();
-  } catch {
-    $("#err").textContent = "La commande n'est pas partie. Vérifie ta connexion et réessaie.";
+  } catch (err) {
+    $("#err").textContent = String(err.message).startsWith("STOCK:")
+      ? "Désolé, « " + err.message.slice(6) + " » vient d'être épuisé ou n'a plus assez de stock. Vérifie ton panier."
+      : "La commande n'est pas partie. Vérifie ta connexion et réessaie.";
   }
   $("#send").disabled = false;
 };

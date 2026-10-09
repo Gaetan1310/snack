@@ -94,12 +94,13 @@ $("#orders").addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const o = orders.find(x => x.id === b.dataset.id), act = b.dataset.act, ref = doc(db, "orders", o.id);
   try {
-    if (act === "valider" || (act === "annuler" && o.status === "validée")) {
-      const batch = writeBatch(db), sign = act === "valider" ? -1 : 1;
-      o.items.forEach(i => batch.update(doc(db, "products", i.id), { stock: increment(sign * i.qty) }));
-      batch.update(ref, { status: act === "valider" ? "validée" : "annulée" });
+    if (act === "valider") await updateDoc(ref, { status: "validée" });
+    else if (act === "annuler") {
+      const batch = writeBatch(db);
+      o.items.forEach(i => batch.update(doc(db, "products", i.id), { stock: increment(i.qty) }));
+      batch.update(ref, { status: "annulée" });
       await batch.commit();
-    } else if (act === "annuler") await updateDoc(ref, { status: "annulée" });
+    }
     else if (act === "livrer") await updateDoc(ref, { status: "livrée" });
     else if (act === "payer") await updateDoc(ref, { paid: !o.paid });
     else if (act === "suppr" && confirm("Supprimer cette commande ?")) await deleteDoc(ref);

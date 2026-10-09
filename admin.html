@@ -30,6 +30,7 @@
       <input id="ap" type="number" step="0.01" min="0" placeholder="Prix €" required aria-label="Prix en euros">
       <input id="as" type="number" min="0" placeholder="Stock" required aria-label="Stock">
       <button class="btn sm">Ajouter</button>
+      <label style="grid-column:1/-1;margin:0">Image (optionnelle)<input id="ai" type="file" accept="image/*"></label>
     </form>
     <div id="products"></div>
   </div>
@@ -107,9 +108,24 @@ $("#orders").addEventListener("click", async e => {
   } catch (err) { alert("Action impossible : " + err.message); }
 });
 
+function resize(file, size = 240) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = c.height = size;
+      const g = c.getContext("2d"), s = Math.min(img.width, img.height);
+      g.fillStyle = "#fff"; g.fillRect(0, 0, size, size);
+      g.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.8));
+    };
+    img.onerror = () => rej(new Error("Image illisible"));
+    img.src = url;
+  });
+}
+
 function renderProducts() {
   $("#products").innerHTML = products.map(p => `<div class="prow" data-id="${p.id}">
-    <span class="emoji" style="font-size:1.5rem">${esc(p.emoji || "🥤")}</span>
+    <label class="thumb" title="Changer l'image">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : `<span class="emoji" style="font-size:1.5rem">${esc(p.emoji || "🥤")}</span>`}<input type="file" accept="image/*" data-f="img" hidden></label>
     <span class="name">${esc(p.name)}</span>
     <input type="number" step="0.01" min="0" value="${(p.priceCents / 100).toFixed(2)}" data-f="price" aria-label="Prix de ${esc(p.name)}">
     <input type="number" min="0" value="${p.stock}" data-f="stock" aria-label="Stock de ${esc(p.name)}">
@@ -126,10 +142,17 @@ $("#products").addEventListener("click", async e => {
   } catch (err) { alert("Action impossible : " + err.message); }
 });
 
+$("#products").addEventListener("change", async e => {
+  const inp = e.target.closest('[data-f="img"]'); if (!inp || !inp.files[0]) return;
+  try { await updateDoc(doc(db, "products", inp.closest(".prow").dataset.id), { image: await resize(inp.files[0]) }); }
+  catch (err) { alert("Image impossible : " + err.message); }
+});
+  
 $("#add").onsubmit = async e => {
   e.preventDefault();
   try {
-    await addDoc(collection(db, "products"), { emoji: $("#ae").value.trim() || "🥤", name: $("#an").value.trim(), priceCents: Math.round($("#ap").value * 100), stock: parseInt($("#as").value, 10) || 0 });
+    const file = $("#ai").files[0], image = file ? await resize(file) : "";
+    await addDoc(collection(db, "products"), { emoji: $("#ae").value.trim() || "🥤", name: $("#an").value.trim(), priceCents: Math.round($("#ap").value * 100), stock: parseInt($("#as").value, 10) || 0, image });
     e.target.reset();
   } catch (err) { alert("Ajout impossible : " + err.message); }
 };

@@ -23,14 +23,10 @@
     <div id="recap"></div>
     <label for="name">Prénom</label><input id="name" name="name" type="text" maxlength="30" required>
     <label for="room">Chambre</label><input id="room" name="room" type="text" maxlength="10" required>
-   <div class="radios">
-  <label style="opacity: 0.5; cursor: not-allowed;">
-    <input type="radio" name="payment" value="wero" disabled> Je paie en Wero (momentanément indisponible)
-  </label>
-  <label>
-    <input type="radio" name="payment" value="especes" checked> Je paie en espèces
-  </label>
-</div>
+    <div class="radios">
+      <label style="opacity: 0.5; cursor: not-allowed;"><input type="radio" name="payment" value="wero" disabled> Je paie en Wero (momentanément indisponible)</label>
+      <label><input type="radio" name="payment" value="especes" checked> Je paie en espèces</label>
+    </div>
     <p class="msg" id="err" role="alert"></p>
     <div style="display:flex;gap:.5rem;justify-content:flex-end"><button type="button" class="btn alt" id="cancel">Retour</button><button class="btn" id="send">Envoyer la commande</button></div>
   </form>
@@ -39,13 +35,13 @@
 
 <script type="module">
 import { db, SHOP, esc, eur } from "./config.js";
-import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, doc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
 let products = [], cart = {};
 $("#title").textContent = SHOP.name;
 
-try { $("#name").value = localStorage.getItem("snack_name") || ""; $("#room").value = localStorage.getItem("snack_room") || ""; } catch {}
+try { $("#name").value = localStorage.getItem("snack_name") \vert{}\vert{} ""; $("#room").value = localStorage.getItem("snack_room") || ""; } catch {}
 
 onSnapshot(query(collection(db, "products"), orderBy("name")), snap => {
   products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -100,7 +96,16 @@ $("#form").onsubmit = async e => {
   const name = f.get("name").trim(), room = f.get("room").trim(), payment = f.get("payment");
   $("#send").disabled = true;
   try {
-    await addDoc(collection(db, "orders"), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, createdAt: serverTimestamp() });
+    const batch = writeBatch(db);
+    const orderRef = doc(collection(db, "orders"));
+    batch.set(orderRef, { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, createdAt: serverTimestamp() });
+    
+    items.forEach(i => {
+      batch.update(doc(db, "products", i.id), { stock: increment(-i.qty) });
+    });
+    
+    await batch.commit();
+
     try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
     cart = {}; render();
     $("#form").hidden = true; $("#done").hidden = false;

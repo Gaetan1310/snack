@@ -61,7 +61,7 @@ function render() {
   $("#list").innerHTML = products.length ? products.map(p => {
     const q = cart[p.id] || 0, out = p.stock < 1;
     return `<div class="item">
-      <div class="emoji">${esc(p.emoji || "🥤")}</div>
+      <div class="emoji">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : esc(p.emoji || "🥤")}</div>
       <div><div class="name">${esc(p.name)}</div><div class="stock ${p.stock <= 3 ? "low" : ""}">${out ? "Épuisé" : p.stock + " en stock"}</div></div>
       <div class="right"><span class="price">${eur(p.priceCents)}</span>
         <div class="step">${out ? "" : `<button data-id="${p.id}" data-d="-1" ${q ? "" : "disabled"} aria-label="Retirer ${esc(p.name)}">−</button><span>${q}</span><button data-id="${p.id}" data-d="1" ${q >= p.stock ? "disabled" : ""} aria-label="Ajouter ${esc(p.name)}">+</button>`}</div>

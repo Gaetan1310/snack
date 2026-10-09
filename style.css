@@ -9,7 +9,7 @@ p.sub{margin:0 0 1rem;color:var(--mute)}
 button,input,select{font:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
-.item{display:grid;grid-template-columns:3rem 1fr auto;gap:.75rem;align-items:center;padding:.9rem 0;border-bottom:1px solid var(--line)}
+.item{display:grid;grid-template-columns:3.5rem 1fr auto;gap:.75rem;align-items:center;padding:.9rem 0;border-bottom:1px solid var(--line)}
 .emoji{font-size:2rem;text-align:center}
 .name{font-weight:700}
 .stock{font-size:.85rem;color:var(--mute)}
@@ -42,3 +42,5 @@ input[type=text],input[type=email],input[type=password],input[type=number]{width
 .prow{display:grid;grid-template-columns:2.5rem 1fr 5rem 4.5rem auto auto;gap:.4rem;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--line)}
 .prow input{padding:.35rem}
 @media(max-width:34rem){.prow{grid-template-columns:2.5rem 1fr 4.5rem 4rem}.prow .btn{grid-column:span 2}}
+.pimg{width:100%;aspect-ratio:1;object-fit:cover;border-radius:.5rem;display:block}
+.thumb{display:block;cursor:pointer}

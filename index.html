@@ -23,7 +23,14 @@
     <div id="recap"></div>
     <label for="name">Prénom</label><input id="name" name="name" type="text" maxlength="30" required>
     <label for="room">Chambre</label><input id="room" name="room" type="text" maxlength="10" required>
-    <div class="radios"><label><input type="radio" name="payment" value="wero" checked> Je paie en Wero</label><label><input type="radio" name="payment" value="especes"> Je paie en espèces</label></div>
+   <div class="radios">
+  <label style="opacity: 0.5; cursor: not-allowed;">
+    <input type="radio" name="payment" value="wero" disabled> Je paie en Wero (momentanément indisponible)
+  </label>
+  <label>
+    <input type="radio" name="payment" value="especes" checked> Je paie en espèces
+  </label>
+</div>
     <p class="msg" id="err" role="alert"></p>
     <div style="display:flex;gap:.5rem;justify-content:flex-end"><button type="button" class="btn alt" id="cancel">Retour</button><button class="btn" id="send">Envoyer la commande</button></div>
   </form>
